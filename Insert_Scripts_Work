@@ -1,0 +1,99 @@
+USE [AdventureWorks]
+GO
+BEGIN TRANSACTION
+
+
+CREATE CLUSTERED INDEX [ClusteredIndex_on_ps_Adventurework_Snapshotdate_638764292321036602] ON [dbo].[Employee]
+(
+	[StartDate]
+)WITH (SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [ps_Adventurework_Snapshotdate]([StartDate])
+
+
+DROP INDEX [ClusteredIndex_on_ps_Adventurework_Snapshotdate_638764292321036602] ON [dbo].[Employee]
+
+
+
+COMMIT TRANSACTION
+
+
+
+
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('20081231');
+
+
+SELECT 
+    i.name AS IndexName, 
+    i.type_desc AS IndexType, 
+    ps.name AS PartitionScheme, 
+    pf.name AS PartitionFunction
+FROM sys.indexes i
+JOIN sys.partition_schemes ps ON i.data_space_id = ps.data_space_id
+JOIN sys.partition_functions pf ON ps.function_id = pf.function_id
+WHERE i.object_id = OBJECT_ID('Adventureworks');
+
+Insert into employee(ParentEmployeeKey
+,EmployeeNationalIDAlternateKey
+,ParentEmployeeNationalIDAlternateKey
+,SalesTerritoryKey
+,FirstName
+,LastName
+,MiddleName
+,NameStyle
+,Title
+,HireDate
+,BirthDate
+,LoginID
+,EmailAddress
+,Phone
+,MaritalStatus
+,EmergencyContactName
+,EmergencyContactPhone
+,SalariedFlag
+,Gender
+,PayFrequency
+,BaseRate
+,VacationHours
+,SickLeaveHours
+,CurrentFlag
+,SalesPersonFlag
+,DepartmentName
+, StartDate
+, EndDate
+,Status
+,EmployeePhoto)
+Select top 20 
+ ParentEmployeeKey
+,EmployeeNationalIDAlternateKey
+,ParentEmployeeNationalIDAlternateKey
+,SalesTerritoryKey
+,FirstName
+,LastName
+,MiddleName
+,NameStyle
+,Title
+,HireDate
+,BirthDate
+,LoginID
+,EmailAddress
+,Phone
+,MaritalStatus
+,EmergencyContactName
+,EmergencyContactPhone
+,SalariedFlag
+,Gender
+,PayFrequency
+,BaseRate
+,VacationHours
+,SickLeaveHours
+,CurrentFlag
+,SalesPersonFlag
+,DepartmentName
+,'01/10/2016' as StartDate
+,'12/11/2016' as EndDate
+,Status
+,EmployeePhoto from dbo.employee
+
+
+
