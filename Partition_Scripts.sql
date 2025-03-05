@@ -1,0 +1,180 @@
+use master
+go
+ALTER DATABASE [AdventureWorks] ADD FILEGROUP FG_2006;
+ALTER DATABASE [AdventureWorks] ADD FILEGROUP FG_2007;
+
+ALTER DATABASE [AdventureWorks] ADD FILEGROUP FG_2017;
+ALTER DATABASE [AdventureWorks] ADD FILEGROUP FG_2018;
+go
+use AdventureWorks
+go
+SELECT name, type_desc FROM sys.filegroups;
+
+-- Check Data Files
+SELECT name, physical_name, size, max_size, growth 
+FROM sys.master_files 
+WHERE database_id = DB_ID('adventureWorks');
+
+go
+
+DROP PARTITION FUNCTION [pfn_AdventureWork_Snapshotdate_]
+
+DROP PARTITION SCHEME [ps_Adventurework_Snapshotdate];
+ 
+CREATE PARTITION FUNCTION [pfn_AdventureWork_Snapshotdate_] (Date)
+      AS RANGE LEFT FOR VALUES
+( '20061231','20071231' )
+
+
+CREATE PARTITION FUNCTION [pfn_AdventureWork_Snapshotdate_new] (Date)
+      AS RANGE LEFT FOR VALUES
+( '20061231','20071231' ,'20081231')
+go
+CREATE  PARTITION SCHEME [ps_Adventurework_Snapshotdate_new]
+      AS PARTITION [pfn_AdventureWork_Snapshotdate_new]
+TO
+([FG_2006],[FG_2007],[FG_2008],[PRIMARY])
+
+
+
+ALTER TABLE dbo.employee ADD PARTITION  
+('20081231') ON [ps_Adventurework_Snapshotdate]
+
+go 
+CREATE  PARTITION SCHEME [ps_Adventurework_Snapshotdate]
+      AS PARTITION [pfn_AdventureWork_Snapshotdate_]
+TO
+([FG_2006],[FG_2007],[PRIMARY])
+
+use [AdventureWorks]
+go
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_new()
+SPLIT RANGE ('20081231');
+
+Select * into dbo.Employee from DimEmployee 
+
+DECLARE @NextYearBoundary DATE = DATEADD(YEAR, 1, 
+(SELECT MAX(value) FROM   sys.partition_range_values 
+WHERE function_id = OBJECT_ID('pfn_AdventureWork_Snapshotdate_')));
+   select @NextYearBoundary
+    --ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+    --SPLIT RANGE (@NextYearBoundary);
+END
+
+go
+
+
+ALTER PARTITION SCHEME pfn_AdventureWork_Snapshotdate_new
+NEXT USED FG_2008;
+
+SELECT * FROM SYS.partition_functions --pfn_AdventureWork_Snapshotdate_
+
+SELECT * FROM SYS.partition_schemes --ps_Adventurework_Snapshotdate
+
+CREATE CLUSTERED INDEX IX_Employee ON dbo.Employee (EmployeeKey);
+
+~~~~~~~~~~~~~~~~~~~
+-- to check boundaryValue
+
+SELECT pf.name AS PartitionFunction, prv.value AS BoundaryValue
+FROM sys.partition_range_values prv
+JOIN sys.partition_functions pf ON prv.function_id = pf.function_id
+WHERE pf.name = 'pfn_AdventureWork_Snapshotdate_'
+ORDER BY prv.value;
+-- to verify tbe partition 
+SELECT 
+    $PARTITION.pfn_AdventureWork_Snapshotdate_(StartDate) AS PartitionNumber,
+    *
+FROM [dbo].[Employee]
+order by startDate desc;
+
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2009;
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('2009-12-31');
+go
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2010;
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('2010-12-31');
+go
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2011;
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('2011-12-31');
+go
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2012;
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('2012-12-31');
+go
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2013;
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('2013-12-31');
+
+go
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2014;
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('2014-12-31');
+go
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2015;
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('2015-12-31');
+go
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2016;
+
+go
+ALTER PARTITION SCHEME ps_Adventurework_Snapshotdate 
+NEXT USED FG_2008;
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+SPLIT RANGE ('2008-12-31');
+
+
+SELECT pf.name AS PartitionFunction, prv.value AS BoundaryValue
+FROM sys.partition_range_values prv
+JOIN sys.partition_functions pf ON prv.function_id = pf.function_id
+ORDER BY pf.name, prv.boundary_id;
+
+-- to check partition 
+SELECT 
+    $PARTITION.pfn_AdventureWork_Snapshotdate_(StartDate) AS PartitionNumber,
+    *
+FROM [dbo].[Employee]
+order by startDate desc;
+
+-- move partition 1 to archive ( make sure the file group sync)
+
+ALTER TABLE [dbo].[Employee]
+SWITCH PARTITION 1 TO [Employee_Archive];
+
+Select * from [Employee_Archive]
+
+Select * from Employee 
+
+ALTER PARTITION FUNCTION pfn_AdventureWork_Snapshotdate_()
+MERGE RANGE ('2006-12-31');
+
+
+-- to check partition 
+SELECT 
+    $PARTITION.pfn_AdventureWork_Snapshotdate_(StartDate) AS PartitionNumber,
+    *
+FROM [dbo].[Employee]
+order by startDate desc;
+-- to check how data is distributed.
+
+SELECT $PARTITION.pfn_AdventureWork_Snapshotdate_([StartDate]) AS PartitionNumber, COUNT(*) AS RowCounts
+FROM [dbo].[Employee]
+GROUP BY $PARTITION.pfn_AdventureWork_Snapshotdate_([StartDate]);
