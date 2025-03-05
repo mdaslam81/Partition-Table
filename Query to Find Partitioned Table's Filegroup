@@ -1,0 +1,14 @@
+SELECT 
+    t.name AS TableName,
+    i.name AS IndexName,
+    p.partition_number,
+    fg.name AS FileGroupName
+FROM sys.partitions p
+JOIN sys.indexes i ON p.object_id = i.object_id AND p.index_id = i.index_id
+JOIN sys.tables t ON p.object_id = t.object_id
+JOIN sys.partition_schemes ps ON i.data_space_id = ps.data_space_id
+JOIN sys.partition_functions pf ON ps.function_id = pf.function_id
+JOIN sys.destination_data_spaces dds ON ps.data_space_id = dds.partition_scheme_id AND p.partition_number = dds.destination_id
+JOIN sys.filegroups fg ON dds.data_space_id = fg.data_space_id
+WHERE t.name = 'YourPartitionedTableName'
+ORDER BY p.partition_number;
