@@ -1,0 +1,14 @@
+CREATE PROCEDURE AddWeeklyPartition  
+AS  
+BEGIN  
+    DECLARE @NextWeek DATE  
+
+    -- Determine the next week's boundary (next Sunday)
+    SET @NextWeek = DATEADD(DAY, 7 - DATEPART(WEEKDAY, GETDATE()), GETDATE())
+
+    -- Add new partition boundary
+    ALTER PARTITION FUNCTION pf_SalesDate()  
+    SPLIT RANGE (@NextWeek)
+
+    PRINT 'New weekly partition added for ' + CONVERT(VARCHAR, @NextWeek)
+END
