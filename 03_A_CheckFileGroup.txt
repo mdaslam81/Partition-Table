@@ -1,0 +1,4 @@
+Select name, type_desc from sys.filegroups
+go
+Select name,physical_name,size,max_size,growth from sys.master_files
+where database_id = db_id('CreditDataMart')
